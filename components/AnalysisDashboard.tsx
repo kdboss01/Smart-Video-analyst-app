@@ -1,0 +1,233 @@
+import React, { useState } from 'react';
+import { MeetingAnalysisResult, SpeakerSegment, ActionItem, SentimentPoint } from '../types';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import ChatInterface from './ChatInterface';
+
+interface Props {
+  data: MeetingAnalysisResult;
+  onReset: () => void;
+}
+
+const AnalysisDashboard: React.FC<Props> = ({ data, onReset }) => {
+  const [activeTab, setActiveTab] = useState<'summary' | 'transcript' | 'analytics' | 'chat'>('summary');
+
+  return (
+    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden">
+      {/* Header */}
+      <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-500/10 rounded-lg">
+            <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="font-semibold text-lg leading-tight truncate max-w-md">{data.title}</h1>
+            <p className="text-xs text-slate-400">SmartMeet Analysis • Gemini 3 Pro</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={onReset} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+            Upload New
+          </button>
+          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-indigo-500/20">
+            Export Report
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <nav className="w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col gap-2">
+          <button
+            onClick={() => setActiveTab('summary')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === 'summary' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('transcript')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === 'transcript' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+            Transcript
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+            Analytics
+          </button>
+          <div className="flex-1"></div>
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              activeTab === 'chat' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            AI Chat Assistant
+          </button>
+        </nav>
+
+        {/* Tab Content */}
+        <main className="flex-1 overflow-y-auto bg-slate-950 p-8">
+          {activeTab === 'summary' && (
+            <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+              {/* Executive Summary */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <span className="w-1 h-6 bg-indigo-500 rounded-full"></span>
+                  Executive Summary
+                </h2>
+                <div className="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed">
+                  <p>{data.summary}</p>
+                </div>
+              </div>
+
+              {/* Grid: Action Items & Decisions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Action Items
+                  </h3>
+                  <ul className="space-y-3">
+                    {data.actionItems.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-3 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-colors">
+                        <div className="mt-1 w-5 h-5 rounded border border-slate-600 flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-emerald-500/20 hover:border-emerald-500">
+                          {item.status === 'Done' && <div className="w-3 h-3 bg-emerald-500 rounded-sm"></div>}
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-200 font-medium">{item.task}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">{item.owner}</span>
+                            {item.dueDate && <span className="text-xs text-slate-500 flex items-center gap-1">📅 {item.dueDate}</span>}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    Key Decisions
+                  </h3>
+                  <ul className="space-y-4">
+                    {data.keyDecisions.map((decision, idx) => (
+                      <li key={idx} className="flex gap-3">
+                        <span className="text-amber-500 font-bold text-lg">•</span>
+                        <p className="text-slate-300 text-sm leading-relaxed">{decision}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'transcript' && (
+            <div className="max-w-4xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+               <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
+                 <h3 className="font-semibold text-slate-200">Full Transcript</h3>
+                 <span className="text-xs text-slate-400 bg-slate-900 px-2 py-1 rounded border border-slate-700">Diarization Active</span>
+               </div>
+               <div className="divide-y divide-slate-800">
+                 {data.transcript.map((seg, idx) => (
+                   <div key={idx} className="p-4 hover:bg-slate-800/30 transition-colors group">
+                     <div className="flex items-center gap-3 mb-1">
+                       <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                         seg.speaker.includes('1') ? 'bg-indigo-900/50 text-indigo-300' : 'bg-emerald-900/50 text-emerald-300'
+                       }`}>
+                         {seg.speaker}
+                       </span>
+                       <span className="text-xs text-slate-500 font-mono">{seg.timestamp}</span>
+                     </div>
+                     <p className="text-slate-300 text-sm leading-relaxed">{seg.text}</p>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+             <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-6">Sentiment "Heartbeat"</h3>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={data.sentimentData}>
+                        <defs>
+                          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis 
+                          dataKey="time" 
+                          stroke="#475569" 
+                          tick={{fill: '#64748b', fontSize: 12}} 
+                          tickLine={false}
+                        />
+                        <YAxis 
+                          domain={[-1, 1]} 
+                          stroke="#475569"
+                          tick={{fill: '#64748b', fontSize: 12}}
+                          tickFormatter={(val) => val > 0 ? 'Pos' : val < 0 ? 'Neg' : 'Neu'}
+                        />
+                        <Tooltip 
+                          contentStyle={{backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f1f5f9'}}
+                          itemStyle={{color: '#818cf8'}}
+                        />
+                        <ReferenceLine y={0} stroke="#334155" strokeDasharray="3 3" />
+                        <Line 
+                          type="monotone" 
+                          dataKey="score" 
+                          stroke="#818cf8" 
+                          strokeWidth={2}
+                          dot={{fill: '#818cf8', r: 3}}
+                          activeDot={{r: 6, fill: '#fff'}}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-xs text-center text-slate-500 mt-4">Timeline analysis of meeting tone (Positive vs Negative)</p>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-4">Topic Cloud</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {data.topics.map((topic, i) => (
+                      <span key={i} className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-full text-sm border border-slate-700 hover:border-indigo-500 hover:text-indigo-400 transition-colors cursor-default">
+                        #{topic}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+             </div>
+          )}
+
+          {activeTab === 'chat' && (
+            <div className="h-full flex flex-col -m-8">
+              <ChatInterface contextData={JSON.stringify(data)} />
+            </div>
+          )}
+
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default AnalysisDashboard;

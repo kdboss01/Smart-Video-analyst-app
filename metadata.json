@@ -1,0 +1,7 @@
+{
+  "name": "SmartMeet Intel",
+  "description": "A comprehensive meeting intelligence system using Gemini 3 Pro for video understanding, deep reasoning, and multimodal analysis.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
