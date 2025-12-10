@@ -34,49 +34,54 @@ const uploadMediaFile = async (file: File, onProgress?: (status: string) => void
     
     if (onProgress) onProgress("Uploading media to safe storage...");
     
-    // Upload the file
-    const uploadResult = await ai.files.upload({
-        file: file,
-        config: { 
-            displayName: file.name, 
-            mimeType: file.type 
+    try {
+        // Upload the file
+        const uploadResult = await ai.files.upload({
+            file: file,
+            config: { 
+                displayName: file.name, 
+                mimeType: file.type 
+            }
+        });
+
+        // Handle variable API response structure (wrapped in .file or direct)
+        // @ts-ignore
+        let fileData = uploadResult.file ?? uploadResult;
+
+        // Validating the upload response
+        if (!fileData || !fileData.name || !fileData.uri) {
+            console.error("Invalid upload response:", uploadResult);
+            throw new Error("Upload failed: Invalid response from Gemini API.");
         }
-    });
-
-    // Validating the upload response
-    if (!uploadResult || !uploadResult.file) {
-        throw new Error("Upload failed: No file data received from Gemini API.");
-    }
-
-    let fileData = uploadResult.file;
-    
-    // Poll for active state (required for videos/large audio)
-    while (fileData.state === "PROCESSING") {
-        if (onProgress) onProgress("Processing media file (this may take a moment)...");
-        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        if (!fileData.name) {
-             throw new Error("File processing error: File name is missing.");
+        // Poll for active state (required for videos/large audio)
+        while (fileData.state === "PROCESSING") {
+            if (onProgress) onProgress("Processing media file (this may take a moment)...");
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            try {
+                const getResult = await ai.files.get({ name: fileData.name });
+                // @ts-ignore
+                fileData = getResult.file ?? getResult;
+            } catch (e) {
+                console.warn("Error polling file status, retrying...", e);
+                // Continue polling even if one request fails
+            }
         }
 
-        const getResult = await ai.files.get({ name: fileData.name });
+        if (fileData.state === "FAILED") {
+            throw new Error("File processing failed on Gemini servers.");
+        }
         
-        if (!getResult || !getResult.file) {
-             throw new Error("File status check failed: No file data received.");
+        if (!fileData.uri) {
+            throw new Error("File processing incomplete: Missing URI.");
         }
 
-        fileData = getResult.file;
+        return { uri: fileData.uri, mimeType: fileData.mimeType || file.type };
+    } catch (error) {
+        console.error("Media upload error:", error);
+        throw error;
     }
-
-    if (fileData.state === "FAILED") {
-        throw new Error("File processing failed on Gemini servers.");
-    }
-    
-    if (!fileData.uri || !fileData.mimeType) {
-        throw new Error("File processing incomplete: Missing URI or MimeType.");
-    }
-
-    return { uri: fileData.uri, mimeType: fileData.mimeType };
 };
 
 // 1. COMPLEX ANALYSIS (Video Understanding + Thinking Mode)
